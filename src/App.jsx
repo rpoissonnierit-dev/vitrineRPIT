@@ -15,6 +15,7 @@
  */
 
 import { Component } from 'react';
+import { LangProvider } from './i18n/index.jsx';
 import HomePage from './HomePage';
 
 // ── Error boundary ────────────────────────────────────────────────────────────
@@ -130,21 +131,25 @@ class ErrorBoundary extends Component {
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
-    <ErrorBoundary>
-      {/*
-       * Future routing goes here, e.g.:
-       *
-       *   <BrowserRouter>
-       *     <Routes>
-       *       <Route path="/"          element={<HomePage />}    />
-       *       <Route path="/solutions" element={<SolutionsPage />} />
-       *       <Route path="*"          element={<NotFound />}    />
-       *     </Routes>
-       *   </BrowserRouter>
-       *
-       * For now the single-page site renders directly:
-       */}
-      <HomePage />
-    </ErrorBoundary>
+    // LangProvider wraps everything so every component can call useLang()
+    // Language is auto-detected from the browser, then persisted in localStorage
+    <LangProvider>
+      <ErrorBoundary>
+        {/*
+         * Future routing goes here, e.g.:
+         *
+         *   <BrowserRouter>
+         *     <Routes>
+         *       <Route path="/"          element={<HomePage />}    />
+         *       <Route path="/solutions" element={<SolutionsPage />} />
+         *       <Route path="*"          element={<NotFound />}    />
+         *     </Routes>
+         *   </BrowserRouter>
+         *
+         * For now the single-page site renders directly:
+         */}
+        <HomePage />
+      </ErrorBoundary>
+    </LangProvider>
   );
 }

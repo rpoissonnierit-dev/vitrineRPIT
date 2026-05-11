@@ -54,6 +54,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useLang } from './i18n/index.jsx';
 import {
   motion,
   AnimatePresence,
@@ -88,17 +89,28 @@ const E_EXPO   = [0.22, 1, 0.36, 1];
 // Physical spring overshoot ease
 const E_SPRING = [0.34, 1.56, 0.64, 1];
 
-// ── Nav items ─────────────────────────────────────────────────────────────────
-const NAV_ITEMS = [
-  { id: 'hero',        label: 'Accueil'   },
-  { id: 'stats',       label: 'Solutions' },
-  { id: 'references',  label: 'Portfolio' },
-  { id: 'contact',     label: 'Contact'   },
+// Nav section IDs — language-independent (used for scroll detection)
+const NAV_IDS = ['hero', 'stats', 'references', 'contact'];
+
+// Build translated nav items from the active translation object
+const buildNavItems = (t) => [
+  { id: 'hero',       label: t.nav.home      },
+  { id: 'stats',      label: t.nav.solutions },
+  { id: 'references', label: t.nav.portfolio },
+  { id: 'contact',    label: t.nav.contact   },
 ];
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
-const scrollTo = (id) =>
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+// window.scrollTo is more reliable than scrollIntoView on iOS Safari —
+// it always targets the main scroll container, respects the navbar offset,
+// and fires immediately without the iOS "smooth scroll interception" bug.
+const scrollTo = (id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const navH = 70; // fixed navbar height in px (matches py-[14px] bar ~62px + buffer)
+  const top  = el.getBoundingClientRect().top + window.pageYOffset - navH;
+  window.scrollTo({ top, behavior: 'smooth' });
+};
 
 // fluid clamp: maps 0→1920 design px to a fluid CSS clamp string
 const fl = (min, max) =>
@@ -152,24 +164,29 @@ function NoiseOverlay() {
 //  └─────────────────────────────────────────────────────────────────────┘
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Exact words from Figma 486:345 — chargementMot column
-const LOADING_WORDS = [
-  { text: 'Bienvenue', size: 100, tracking: '20px',    casing: 'uppercase'   },
-  { text: 'RPIT',      size: 93,  tracking: '18.6px',  casing: 'uppercase'   },
-  { text: 'Sites',     size: 93,  tracking: '18.6px',  casing: 'capitalize'  },
-  { text: 'Logos',     size: 93,  tracking: '13.95px', casing: 'capitalize'  },
-  { text: 'Design',    size: 93,  tracking: '7.44px',  casing: 'capitalize'  },
-  { text: 'Créations', size: 93,  tracking: '7.44px',  casing: 'capitalize'  },
+// Loading words built from the active translation — called inside LoadingOverlay
+// so the language captured at mount is used for the whole animation sequence.
+const buildLoadingWords = (t) => [
+  { text: t.loading.welcome,  size: 100, tracking: '20px',    casing: 'uppercase'  },
+  { text: t.loading.brand,    size: 93,  tracking: '18.6px',  casing: 'uppercase'  },
+  { text: t.loading.service1, size: 93,  tracking: '18.6px',  casing: 'capitalize' },
+  { text: t.loading.service2, size: 93,  tracking: '13.95px', casing: 'capitalize' },
+  { text: t.loading.service3, size: 93,  tracking: '7.44px',  casing: 'capitalize' },
+  { text: t.loading.service4, size: 93,  tracking: '7.44px',  casing: 'capitalize' },
 ];
 
 // Y-stops: each word occupies one SLOT of exactly slotH pixels.
 // slotH = the clip-window height, so scrolling by slotH shows the next word perfectly.
 // No font-metric guessing — the word is centred inside its slot by CSS flexbox.
 // Stops: word_i → y = -i * slotH
+// Number of words in buildLoadingWords — must stay in sync if words are added/removed
+const WORD_COUNT = 6;
+
 const getSlotH  = () => Math.round(132 * Math.min(window.innerWidth / 1920, 1));
+// Y-stops: one slot per word, each slot = one full clip-window height
 const getYStops = () => {
   const slotH = getSlotH();
-  return LOADING_WORDS.map((_, i) => -i * slotH);
+  return Array.from({ length: WORD_COUNT }, (_, i) => -i * slotH);
 };
 
 // Logo geometry from Figma 485:313
@@ -197,8 +214,11 @@ function ProgressTicker({ totalMs }) {
 }
 
 function LoadingOverlay({ onComplete }) {
+  const { t }                     = useLang();
+  // Freeze the word list at mount — language won't change mid-animation
+  const LOADING_WORDS             = useRef(buildLoadingWords(t)).current;
   const [show,      setShow     ] = useState(true);
-  const [logoPhase, setLogoPhase] = useState('center'); // 'center' | 'left' | 'last'
+  const [logoPhase, setLogoPhase] = useState('center');
   const [showWords, setShowWords] = useState(false);
   const wordAnim                  = useAnimation();
   const barAnim                   = useAnimation();
@@ -210,7 +230,7 @@ function LoadingOverlay({ onComplete }) {
   const T_WORD_HOLD = 190;   // hold on each word
   const T_RETURN    = 420;   // logo return after words finish
   const TOTAL_MS    = T_ENTRANCE + T_SETTLE
-    + (LOADING_WORDS.length - 1) * (T_WORD_ANIM + T_WORD_HOLD)
+    + (WORD_COUNT - 1) * (T_WORD_ANIM + T_WORD_HOLD)
     + T_RETURN;              // ≈ 4070ms
 
   useEffect(() => {
@@ -273,7 +293,7 @@ function LoadingOverlay({ onComplete }) {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.04, filter: 'blur(12px)', transition: { duration: 0.75, ease: E_EXPO } }}
           transition={{ duration: 0.45 }}
-          role="status" aria-label="Chargement RPIT…"
+          role="status" aria-label={t.loading.ariaLabel}
         >
           {/* Vignette depth layer */}
           <motion.div
@@ -443,20 +463,21 @@ function CharReveal({ children, baseDelay = 0, step = 0.028 }) {
 // 3. LOGO MARQUEE
 // ═════════════════════════════════════════════════════════════════════════════
 
-const PARTNERS = [
-  { src: IMG_RENAULT, alt: 'Renault Group — client RPIT création site web', ratio: '557/261' },
-  { src: IMG_DANSER,  alt: 'Danser — partenaire RPIT',                       ratio: '400/182' },
-  { src: IMG_CITELIV, alt: 'CitéLiv — partenaire RPIT',                      ratio: '400/182' },
+const PARTNER_IMAGES = [
+  { src: IMG_RENAULT, altKey: 'renaultAlt', ratio: '557/261' },
+  { src: IMG_DANSER,  altKey: 'danserAlt',  ratio: '400/182' },
+  { src: IMG_CITELIV, altKey: 'citelivAlt', ratio: '400/182' },
 ];
 
 function LogoStrip() {
+  const { t } = useLang();
   return (
     <div className="flex items-center gap-[clamp(40px,11.4vw,218px)] h-[clamp(50px,7.3vw,140px)] shrink-0 px-6">
-      {PARTNERS.map((p, i) => (
+      {PARTNER_IMAGES.map((p, i) => (
         <div key={i} className="h-full shrink-0" style={{ aspectRatio: p.ratio }}>
           <img
             src={p.src}
-            alt={p.alt}
+            alt={t.partners[p.altKey]}
             loading="lazy"
             decoding="async"
             className="w-full h-full object-contain"
@@ -514,6 +535,8 @@ const GRAD_BLUE  = 'linear-gradient(95.97deg,rgb(25,60,184) 31.57%,rgb(22,36,86)
 const GRAD_WHITE = 'linear-gradient(95.97deg,#ffffff 31.57%,#fefce8 154.52%)';
 
 function NavBar({ ready }) {
+  const { t }                             = useLang();
+  const NAV_ITEMS                         = buildNavItems(t);
   const [open,          setOpen         ] = useState(false);
   const [scrolled,      setScrolled     ] = useState(false);
   const [activeSection, setActiveSection] = useState('hero');
@@ -528,7 +551,7 @@ function NavBar({ ready }) {
       // scroll direction and never flickers between sections.
       const threshold = window.innerHeight * 0.5;
       let best = 'hero', bestTop = -Infinity;
-      NAV_ITEMS.forEach(({ id }) => {
+      NAV_IDS.forEach((id) => {
         const el = document.getElementById(id);
         if (!el) return;
         const { top } = el.getBoundingClientRect();
@@ -555,15 +578,24 @@ function NavBar({ ready }) {
       transition={{ duration: .6, ease: E_EXPO, delay: .1 }}
     >
       {/* ── DESKTOP ─────────────────────────────────────────────────────────── */}
-      {/*  All elements are ALWAYS in the DOM — only opacity/pointerEvents change.
-           This prevents the AnimatePresence unmount bug where re-mounted elements
-           stay stuck at opacity:0 after scroll-up.                               */}
+      {/*
+          TWO SEPARATE LAYERS — avoids the centering bug where invisible-but-
+          space-occupying logo/CTA shift the flex-1 container off-centre:
+
+          Layer A (flex row)  → logo  +  default links  +  CTA
+                                 fades out as a group when scrolled
+
+          Layer B (absolute)  → pill, positioned relative to the FULL header width
+                                 so it's always truly centred regardless of Layer A
+      */}
+
+      {/* Layer A — default state (transparent header) */}
       <div className="hidden md:flex items-center justify-between pointer-events-auto
                       max-w-[1440px] mx-auto
                       px-6 lg:px-[clamp(40px,7.9vw,152px)]
                       py-[14px]">
 
-        {/* ── Logo (visible when at top) ─────────────────────────────────── */}
+        {/* Logo */}
         <motion.button
           onClick={() => scrollTo('hero')}
           className="flex items-center bg-transparent border-none cursor-pointer shrink-0"
@@ -576,93 +608,30 @@ function NavBar({ ready }) {
           <img src={IMG_LOGO} alt="RPIT" className="h-[34px] w-[28px] object-contain" />
         </motion.button>
 
-        {/* ── Center area: default links (top) ↔ pill (scrolled) ──────────── */}
-        {/*  Both live in a flex-1 container. Default links fade out when the   */}
-        {/*  pill fades in — no mount/unmount, no stuck opacity.               */}
-        <div className="relative flex-1 flex items-center justify-center" style={{ minHeight: 34 }}>
-
-          {/* Default links — always rendered */}
-          <motion.nav
-            className="absolute inset-0 flex items-center justify-center gap-2"
-            animate={{ opacity: scrolled ? 0 : 1, y: scrolled ? -6 : 0 }}
-            transition={{ duration: .28, ease: E_EXPO }}
-            style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
-            aria-hidden={scrolled}
-          >
-            {NAV_ITEMS.map((item) => (
-              <motion.button
-                key={item.id}
-                onClick={() => scrollTo(item.id)}
-                className="font-limelight text-white uppercase
-                           px-3 py-1 bg-transparent border-none cursor-pointer
-                           hover:text-white/70 transition-colors"
-                style={{ fontSize: 'clamp(16px,1.875vw,27px)', letterSpacing: '2.16px' }}
-                whileHover={{ scale: 1.04 }} whileTap={{ scale: .96 }}
-              >
-                {item.label}
-              </motion.button>
-            ))}
-          </motion.nav>
-
-          {/* Pill — always rendered */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            animate={{ opacity: scrolled ? 1 : 0, scale: scrolled ? 1 : 0.88, y: scrolled ? 0 : -10 }}
-            transition={{ duration: .32, ease: E_EXPO }}
-            style={{ pointerEvents: scrolled ? 'auto' : 'none' }}
-            aria-hidden={!scrolled}
-          >
-            <div
-              className="flex items-center justify-between h-[34px] px-[20px] rounded-[50px]"
-              style={{
-                backgroundColor: pillBg,
-                boxShadow: '0px 4px 2px rgba(0,0,0,0.25)',
-                width: 'clamp(380px, 59.2vw, 1136px)',
-                transition: 'background-color .3s ease',
-              }}
+        {/* Default links */}
+        <motion.nav
+          className="flex items-center gap-2 flex-1 justify-center"
+          animate={{ opacity: scrolled ? 0 : 1, y: scrolled ? -6 : 0 }}
+          transition={{ duration: .28, ease: E_EXPO }}
+          style={{ pointerEvents: scrolled ? 'none' : 'auto' }}
+          aria-hidden={scrolled}
+        >
+          {NAV_ITEMS.map((item) => (
+            <motion.button
+              key={item.id}
+              onClick={() => scrollTo(item.id)}
+              className="font-limelight text-white uppercase
+                         px-3 py-1 bg-transparent border-none cursor-pointer
+                         hover:text-white/70 transition-colors"
+              style={{ fontSize: 'clamp(16px,1.875vw,27px)', letterSpacing: '2.16px' }}
+              whileHover={{ scale: 1.04 }} whileTap={{ scale: .96 }}
             >
-              {NAV_ITEMS.map((item) => {
-                const isActive  = activeSection === item.id;
-                const textGrad  = isActive
-                  ? (isContact ? GRAD_WHITE : GRAD_BLUE)
-                  : (isContact ? GRAD_BLUE  : null);
-                const textColor = (!isActive && !isContact) ? '#ffffff' : 'transparent';
+              {item.label}
+            </motion.button>
+          ))}
+        </motion.nav>
 
-                return (
-                  <motion.button
-                    key={item.id}
-                    onClick={() => scrollTo(item.id)}
-                    className="relative font-limelight uppercase bg-transparent border-none
-                               cursor-pointer h-full flex items-center px-[13px]"
-                    style={{ borderRadius: 19, fontSize: 'clamp(13px,1.25vw,21px)' }}
-                    whileHover={{ scale: 1.06 }} whileTap={{ scale: .94 }}
-                  >
-                    {isActive && (
-                      <motion.span
-                        layoutId="nav-pill-bg"
-                        className="absolute inset-0"
-                        style={{ backgroundColor: isContact ? '#162456' : '#fefce8', borderRadius: 19 }}
-                        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                      />
-                    )}
-                    <span
-                      className={`relative z-10 ${textGrad ? 'bg-clip-text' : ''}`}
-                      style={{
-                        color:           textColor,
-                        backgroundImage: textGrad ?? undefined,
-                        letterSpacing:   isActive ? '4.05px' : '2.43px',
-                      }}
-                    >
-                      {item.label}
-                    </span>
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* ── Audit offert CTA (visible when at top) ─────────────────────── */}
+        {/* CTA */}
         <motion.button
           onClick={() => scrollTo('contact')}
           className="ml-3 px-6 py-2 bg-[#ffe355] text-[#162456] font-limelight
@@ -673,9 +642,66 @@ function NavBar({ ready }) {
           whileHover={{ scale: scrolled ? 0.8 : 1.04, filter: 'brightness(1.08)' }}
           whileTap={{ scale: .97 }}
         >
-          Audit offert
+          {t.nav.ctaButton}
         </motion.button>
       </div>
+
+      {/* Layer B — scrolled pill, absolutely centred across the FULL header width */}
+      <motion.div
+        className="hidden md:flex absolute inset-0 items-center justify-center"
+        animate={{ opacity: scrolled ? 1 : 0, scale: scrolled ? 1 : 0.88, y: scrolled ? 0 : -10 }}
+        transition={{ duration: .32, ease: E_EXPO }}
+        style={{ pointerEvents: scrolled ? 'auto' : 'none' }}
+        aria-hidden={!scrolled}
+      >
+        <div
+          className="flex items-center justify-between h-[34px] px-[20px] rounded-[50px]"
+          style={{
+            backgroundColor: pillBg,
+            boxShadow:       '0px 4px 2px rgba(0,0,0,0.25)',
+            width:           'clamp(380px, 59.2vw, 1136px)',
+            transition:      'background-color .3s ease',
+          }}
+        >
+          {NAV_ITEMS.map((item) => {
+            const isActive  = activeSection === item.id;
+            const textGrad  = isActive
+              ? (isContact ? GRAD_WHITE : GRAD_BLUE)
+              : (isContact ? GRAD_BLUE  : null);
+            const textColor = (!isActive && !isContact) ? '#ffffff' : 'transparent';
+
+            return (
+              <motion.button
+                key={item.id}
+                onClick={() => scrollTo(item.id)}
+                className="relative font-limelight uppercase bg-transparent border-none
+                           cursor-pointer h-full flex items-center px-[13px]"
+                style={{ borderRadius: 19, fontSize: 'clamp(13px,1.25vw,21px)' }}
+                whileHover={{ scale: 1.06 }} whileTap={{ scale: .94 }}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="nav-pill-bg"
+                    className="absolute inset-0"
+                    style={{ backgroundColor: isContact ? '#162456' : '#fefce8', borderRadius: 19 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                  />
+                )}
+                <span
+                  className={`relative z-10 ${textGrad ? 'bg-clip-text' : ''}`}
+                  style={{
+                    color:           textColor,
+                    backgroundImage: textGrad ?? undefined,
+                    letterSpacing:   isActive ? '4.05px' : '2.43px',
+                  }}
+                >
+                  {item.label}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
 
       {/* ── MOBILE ──────────────────────────────────────────────────────────── */}
       <div className="md:hidden flex items-center justify-between pointer-events-auto px-6 py-3">
@@ -704,7 +730,7 @@ function NavBar({ ready }) {
           >
             <span className="font-limelight uppercase text-[11px]"
                   style={{ letterSpacing: '1.5px', color: '#162456' }}>
-              {NAV_ITEMS.find(n => n.id === activeSection)?.label ?? 'Menu'}
+              {NAV_ITEMS.find(n => n.id === activeSection)?.label ?? t.footer.menuHeading}
             </span>
           </motion.button>
         </div>
@@ -715,48 +741,64 @@ function NavBar({ ready }) {
           whileTap={{ scale: .9 }}
         >
           {open
-            ? <FontAwesomeIcon icon={faXmark} style={{ width: 22, fontSize: 22 }} />
-            : <FontAwesomeIcon icon={faBars}  style={{ width: 22, fontSize: 22 }} />
+            ? <FontAwesomeIcon icon={faXmark} style={{ width: 22, fontSize: 22, color: 'white' }} />
+            : <FontAwesomeIcon icon={faBars}  style={{ width: 22, fontSize: 22, color: 'white' }} />
           }
         </motion.button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile drawer
+          Uses opacity+y animation instead of height so Framer Motion never adds
+          overflow:hidden — which would trap click/touch events inside the drawer.
+          touch-action:manipulation removes the 300ms tap delay on iOS Safari.    */}
       <AnimatePresence>
         {open && (
           <motion.nav
-            className="md:hidden pointer-events-auto absolute top-full left-0 right-0
+            className="md:hidden absolute top-full left-0 right-0
                        flex flex-col px-6 py-6 gap-1"
-            style={{ background: 'rgba(0,5,9,.96)', backdropFilter: 'blur(20px)' }}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: .28, ease: E_EXPO }}
+            style={{
+              background:     'rgba(0,5,9,.97)',
+              backdropFilter: 'blur(20px)',
+              pointerEvents:  'auto',    // explicit inline — overrides any parent rule
+              touchAction:    'manipulation',
+            }}
+            initial={{ opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0  }}
+            exit={{ opacity: 0,    y: -12 }}
+            transition={{ duration: .25, ease: E_EXPO }}
           >
             {NAV_ITEMS.map((item, i) => (
               <motion.button
                 key={item.id}
-                onClick={() => { scrollTo(item.id); setOpen(false); }}
+                onClick={() => { setOpen(false); scrollTo(item.id); }}
                 className="text-left font-limelight uppercase text-2xl tracking-[.1em]
-                           py-3 border-b border-white/10 last:border-0
-                           bg-transparent border-none cursor-pointer"
-                style={{ color: activeSection === item.id ? '#f8cf00' : '#ffffff' }}
-                initial={{ x: -30, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ delay: i * .06, duration: .3, ease: E_EXPO }}
+                           py-4 border-b border-white/10 last:border-0
+                           bg-transparent border-none cursor-pointer w-full"
+                style={{
+                  color:       activeSection === item.id ? '#f8cf00' : '#ffffff',
+                  touchAction: 'manipulation',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                initial={{ x: -24, opacity: 0 }}
+                animate={{ x: 0,   opacity: 1 }}
+                transition={{ delay: i * .055, duration: .28, ease: E_EXPO }}
               >
                 {item.label}
               </motion.button>
             ))}
             <motion.button
-              onClick={() => { scrollTo('contact'); setOpen(false); }}
+              onClick={() => { setOpen(false); scrollTo('contact'); }}
               className="mt-4 py-3 bg-[#ffe355] text-[#162456] font-limelight text-xl
-                         uppercase tracking-[.12em] rounded-[29px] border-none cursor-pointer"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: NAV_ITEMS.length * .06 + .04, duration: .3, ease: E_EXPO }}
+                         uppercase tracking-[.12em] rounded-[29px] border-none cursor-pointer w-full"
+              style={{
+                touchAction: 'manipulation',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+              initial={{ y: 16, opacity: 0 }}
+              animate={{ y: 0,  opacity: 1 }}
+              transition={{ delay: NAV_ITEMS.length * .055 + .04, duration: .28, ease: E_EXPO }}
             >
-              Audit offert
+              {t.nav.ctaButton}
             </motion.button>
           </motion.nav>
         )}
@@ -779,7 +821,8 @@ function NavBar({ ready }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function HeroSection({ ready }) {
-  const ref = useRef(null);
+  const { t }                           = useLang();
+  const ref                             = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end start'] });
   const photoY = useTransform(scrollYProgress, [0, 1], [0, -180]);
   const textY  = useTransform(scrollYProgress, [0, 1], [0,  -40]);
@@ -789,7 +832,9 @@ function HeroSection({ ready }) {
 
   return (
     // Reduced lateral padding on desktop so text + photo both have breathing room
-    <section id="hero" ref={ref} aria-label="Présentation de Remy Poissonnier" className="relative min-h-screen w-full flex items-center overflow-hidden pt-20 md:pt-[72px]">
+    <section id="hero" ref={ref} aria-label="Présentation de Remy Poissonnier"
+      className="relative min-h-screen w-full flex items-center overflow-hidden pt-20 md:pt-[72px]"
+      style={{ position: 'relative' }}>{/* explicit position for Framer Motion useScroll */}
       <div className="w-full px-6 sm:px-10 lg:px-[clamp(40px,4.2vw,80px)]">
         <div className="flex flex-col-reverse lg:flex-row items-center justify-center gap-10 lg:gap-[clamp(32px,6vw,120px)] w-full">
 
@@ -806,7 +851,7 @@ function HeroSection({ ready }) {
                 style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
                 variants={{ hidden: { y: '105%' }, show: { y: 0, transition: { duration: .5, delay: .1, ease: E_EXPO } } }}
               >
-                Gestionnaire de RPIT
+                {t.hero.jobTitle}
               </motion.p>
             </div>
 
@@ -821,7 +866,7 @@ function HeroSection({ ready }) {
                 textShadow: '13px 4px 2.8px rgba(0,0,0,.25)',
               }}
             >
-              {['REMY', 'POISSONNIER'].map((word, i) => (
+              {[t.hero.firstName, t.hero.lastName].map((word, i) => (
                 <span key={word} style={{ display: 'block', overflow: 'hidden' }}>
                   <motion.span
                     style={{ display: 'block' }}
@@ -849,8 +894,7 @@ function HeroSection({ ready }) {
                 show:   { opacity: 1, y: 0,  filter: 'blur(0px)', transition: { duration: .6, delay: .65, ease: E_EXPO } },
               }}
             >
-              Le design pour l&apos;image, le SEO pour la croissance. Depuis 5 ans, je transforme ma
-              passion pour le web en leviers de performance mesurables pour mes partenaires.
+              {t.hero.description}
             </motion.p>
 
             {/* Mobile/tablet CTA */}
@@ -865,8 +909,8 @@ function HeroSection({ ready }) {
               whileTap={{ scale: .97 }}
               onClick={() => scrollTo('contact')}
             >
-              Réserver mon audit offert
-              <FontAwesomeIcon icon={faArrowRight} style={{ width: 16, fontSize: 16 }} />
+              {t.hero.mobileCtaButton}
+              <FontAwesomeIcon icon={faArrowRight} style={{ width: 16, fontSize: 16, color: 'white' }} />
             </motion.button>
           </motion.div>
 
@@ -893,7 +937,7 @@ function HeroSection({ ready }) {
             >
               <img
                 src={IMG_PHOTO}
-                alt="Remy Poissonnier, fondateur de RPIT — expert création site web et SEO à Bouchain, Nord"
+                alt={t.hero.photoAlt}
                 fetchpriority="high"
                 decoding="async"
                 className="w-full h-full object-cover object-top"
@@ -922,8 +966,8 @@ function HeroSection({ ready }) {
         animate={{ y: [0, 8, 0] }}
         transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
       >
-        <span className="font-inter text-[10px] uppercase tracking-[.2em]">Scroll</span>
-        <FontAwesomeIcon icon={faChevronDown} style={{ width: 14, fontSize: 14 }} />
+        <span className="font-inter text-[10px] uppercase tracking-[.2em]">{t.hero.scrollHint}</span>
+        <FontAwesomeIcon icon={faChevronDown} style={{ width: 14, fontSize: 14, color: 'rgba(255,255,255,0.4)' }} />
       </motion.div>
     </section>
   );
@@ -937,6 +981,7 @@ function HeroSection({ ready }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function StatsSection() {
+  const { t }            = useLang();
   const { ref, visible } = useReveal();
 
   return (
@@ -954,14 +999,13 @@ function StatsSection() {
               className="font-limelight text-white leading-normal"
               style={{ fontSize: 'clamp(20px,3.3vw,47px)' }}
             >
-              Augmentez votre visibilité de 60&nbsp;% et votre taux de conversion jusqu&apos;à 40&nbsp;%.
+              {t.stats.headline}
             </h2>
             <p
               className="font-inter font-normal text-white leading-[1.2]"
               style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
             >
-              5 ans d&apos;expertise au service de votre croissance. J&apos;accompagne les entreprises
-              dans leur transformation digitale avec des résultats visibles dès la 3e semaine.
+              {t.stats.body}
             </p>
           </motion.div>
 
@@ -971,7 +1015,7 @@ function StatsSection() {
             animate={visible ? { opacity: .8, scale: 1, rotate: 0 } : {}}
             transition={{ duration: .7, delay: .15, ease: E_SPRING }}
           >
-            <FontAwesomeIcon icon={faEye} style={{ fontSize: fl(60, 168) }} />
+            <FontAwesomeIcon icon={faEye} style={{ fontSize: fl(60, 168), color: 'white' }} />
           </motion.div>
         </div>
       </div>
@@ -1000,7 +1044,7 @@ function PartnersSection() {
             animate={visible ? { opacity: 1, scale: 1 } : {}}
             transition={{ duration: .6, delay: .1, ease: E_SPRING }}
           >
-            <FontAwesomeIcon icon={faUsers} style={{ fontSize: fl(60, 161) }} />
+            <FontAwesomeIcon icon={faUsers} style={{ fontSize: fl(60, 161), color: 'white' }} />
           </motion.div>
 
           <motion.div
@@ -1026,6 +1070,7 @@ function PartnersSection() {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function ReservationSection() {
+  const { t }            = useLang();
   const { ref, visible } = useReveal();
 
   return (
@@ -1047,12 +1092,12 @@ function ReservationSection() {
               textShadow: '6px 6px 14.3px white',
             }}
           >
-            Réserver mon audit offert
+            {t.cta.reserveAudit}
           </span>
           <FontAwesomeIcon
             icon={faArrowRight}
-            className="text-white shrink-0 group-hover:translate-x-2 transition-transform duration-300"
-            style={{ fontSize: fl(20, 36) }}
+            className="shrink-0 group-hover:translate-x-2 transition-transform duration-300"
+            style={{ fontSize: fl(20, 36), color: 'white' }}
           />
         </motion.button>
       </div>
@@ -1067,6 +1112,7 @@ function ReservationSection() {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function ReferencesSection() {
+  const { t }            = useLang();
   const { ref, visible } = useReveal();
 
   return (
@@ -1084,14 +1130,13 @@ function ReferencesSection() {
               className="font-limelight text-white leading-normal text-center lg:text-left"
               style={{ fontSize: 'clamp(20px,3.3vw,47px)' }}
             >
-              Références &amp; Expertises
+              {t.references.title}
             </h2>
             <p
               className="font-inter font-normal text-white leading-[1.2] text-center lg:text-left"
               style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
             >
-              Actuellement en cours de mise à jour, mon portfolio reflète 5 ans de collaborations
-              avec des acteurs majeurs de l&apos;industrie.
+              {t.references.body}
             </p>
           </motion.div>
 
@@ -1106,37 +1151,12 @@ function ReferencesSection() {
               animate={{ rotate: 360 }}
               transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
             >
-              <FontAwesomeIcon icon={faGear} style={{ fontSize: fl(80, 229) }} />
+              <FontAwesomeIcon icon={faGear} style={{ fontSize: fl(80, 229), color: 'white' }} />
             </motion.div>
           </motion.div>
         </div>
 
-        {/* Glassmorphism placeholder cards */}
-        <motion.div
-          className="mt-12 md:mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
-          initial={{ opacity: 0, y: 40 }}
-          animate={visible ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: .7, delay: .3, ease: E_EXPO }}
-        >
-          {['Projet 01', 'Projet 02', 'Projet 03'].map((label, i) => (
-            <motion.div
-              key={label}
-              className="rounded-[24px] aspect-video flex items-center justify-center cursor-pointer"
-              style={{
-                background:     'rgba(255,255,255,.06)',
-                border:         '1px solid rgba(255,255,255,.1)',
-                backdropFilter: 'blur(8px)',
-              }}
-              whileHover={{ scale: 1.02, background: 'rgba(255,255,255,.1)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
-            >
-              <span className="font-limelight text-white/40 uppercase tracking-[.2em]"
-                    style={{ fontSize: 'clamp(12px,1.1vw,18px)' }}>
-                {label}
-              </span>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* Portfolio grid — add project cards here when ready */}
       </div>
     </section>
   );
@@ -1149,6 +1169,7 @@ function ReferencesSection() {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function CommitmentSection() {
+  const { t }            = useLang();
   const { ref, visible } = useReveal();
 
   return (
@@ -1164,7 +1185,7 @@ function CommitmentSection() {
           >
             <FontAwesomeIcon
               icon={faHandshake}
-              style={{ fontSize: fl(80, 235) }}
+              style={{ fontSize: fl(80, 235), color: 'white' }}
             />
           </motion.div>
 
@@ -1175,7 +1196,7 @@ function CommitmentSection() {
             animate={visible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: .7, delay: .15, ease: E_EXPO }}
           >
-            Mon engagement&nbsp;: Un site livré et des premiers résultats concrets sous 21&nbsp;jours.
+            {t.commitment.promise}
           </motion.h2>
 
         </div>
@@ -1191,6 +1212,7 @@ function CommitmentSection() {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function ContactSection() {
+  const { t }            = useLang();
   const { ref, visible } = useReveal();
 
   return (
@@ -1208,14 +1230,13 @@ function ContactSection() {
               className="font-limelight text-white leading-normal"
               style={{ fontSize: 'clamp(20px,3.3vw,47px)', textShadow: '0px 4px 4px rgba(0,0,0,.25)' }}
             >
-              Prêt à booster votre chiffre d&apos;affaires&nbsp;?
+              {t.contact.headline}
             </h2>
             <p
               className="font-inter font-normal text-white leading-[1.2] text-justify"
               style={{ fontSize: 'clamp(14px,1.875vw,27px)', textShadow: '0px 4px 4px rgba(0,0,0,.25)' }}
             >
-              L&apos;audit de votre communication est la première étape vers votre succès digital.
-              Discutons de votre projet lors d&apos;un appel de 15 minutes.
+              {t.contact.body}
             </p>
 
             {/* CTA — bigger white centered text, same mailto link */}
@@ -1233,7 +1254,7 @@ function ContactSection() {
               whileTap={{ scale: .97 }}
               transition={{ type: 'spring', stiffness: 350, damping: 22 }}
             >
-              Réserver mon audit offert
+              {t.contact.ctaButton}
             </motion.a>
           </motion.div>
 
@@ -1250,7 +1271,7 @@ function ContactSection() {
               animate={{ y: [0, -14, 0] }}
               transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut', delay: .8 }}
             >
-              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: fl(100, 235) }} />
+              <FontAwesomeIcon icon={faEnvelope} style={{ fontSize: fl(100, 235), color: 'white' }} />
             </motion.div>
           </motion.a>
 
@@ -1278,21 +1299,23 @@ function ContactSection() {
 //  Responsive: single column on mobile, 3-col grid from md+
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Font clamps — Figma 1920px baseline: heading 90px, items 50px
-const F_HEAD  = 'clamp(28px, 4.69vw, 90px)';
-const F_ITEMS = 'clamp(16px, 2.60vw, 50px)';
+// Footer font sizes — scaled down from Figma's 1920px canvas to readable screen sizes
+const F_HEAD  = 'clamp(16px, 1.67vw, 26px)';   // section headings: Menu / Bureau / Social / Langue
+const F_ITEMS = 'clamp(13px, 0.94vw, 15px)';   // body links and text
+const F_EMAIL = 'clamp(11px, 0.83vw, 13px)';   // email address — long string needs extra room
 
-const FOOTER_NAV = [
-  { label: 'Accueil',   id: 'hero'       },
-  { label: 'Solutions', id: 'stats'      },
-  { label: 'Portfolio', id: 'references' },
-  { label: 'Contact',   id: 'contact'    },
+// Footer nav IDs are language-independent — labels come from t inside Footer
+const FOOTER_NAV_IDS = [
+  { id: 'hero'       },
+  { id: 'stats'      },
+  { id: 'references' },
+  { id: 'contact'    },
 ];
 
-const FOOTER_SOCIAL = [
-  { label: 'Facebook',  href: 'https://www.facebook.com/profile.php?id=61589549072639', icon: faFacebook  },
-  { label: 'Instagram', href: 'https://www.instagram.com/',                             icon: faInstagram },
-  { label: 'LinkedIn',  href: 'https://www.linkedin.com/in/remy-poissonnier/',          icon: faLinkedin  },
+const FOOTER_SOCIAL_DATA = [
+  { labelKey: 'facebook',  hrefKey: 'facebookUrl',  icon: faFacebook  },
+  { labelKey: 'instagram', hrefKey: 'instagramUrl', icon: faInstagram },
+  { labelKey: 'linkedin',  hrefKey: 'linkedinUrl',  icon: faLinkedin  },
 ];
 
 // Reusable column block
@@ -1306,13 +1329,13 @@ function FooterCol({ heading, children, delay, visible }) {
     >
       <h3
         className="font-limelight leading-none"
-        style={{ fontSize: F_HEAD }}
+        style={{ fontSize: F_HEAD, marginBottom: 'clamp(10px, 1vw, 16px)' }}
       >
         {heading}
       </h3>
       <div
         className="flex flex-col font-inter font-normal"
-        style={{ gap: 'clamp(6px, 1.51vw, 26px)', marginTop: 'clamp(8px, 1vw, 18px)' }}
+        style={{ gap: 'clamp(6px, 0.63vw, 10px)' }}
       >
         {children}
       </div>
@@ -1321,61 +1344,86 @@ function FooterCol({ heading, children, delay, visible }) {
 }
 
 function Footer() {
-  const { ref, visible } = useReveal('-5%');
+  const { t, lang, setLang } = useLang();
+  const { ref, visible }     = useReveal('-5%');
+
+  // Nav labels from translation (same order as FOOTER_NAV_IDS)
+  const footerNavLabels = [t.nav.home, t.nav.solutions, t.nav.portfolio, t.nav.contact];
 
   return (
-    <footer ref={ref} className="w-full bg-white overflow-hidden py-[52px] text-[#162456]">
+    <footer ref={ref} className="w-full bg-white overflow-hidden py-[60px] text-[#162456]">
 
-      {/* ── Top section: 3-column grid ──────────────────────────────────── */}
-      <div className="px-4 sm:px-[50px]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
+      {/* ── Top section: 4-column grid ──────────────────────────────────── */}
+      <div className="px-6 sm:px-[60px] lg:px-[80px]">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 md:gap-x-12 md:gap-y-10">
 
           {/* ── Col 1: Menu ── */}
-          <FooterCol heading="Menu" delay={0} visible={visible}>
-            {FOOTER_NAV.map(({ label, id }) => (
+          <FooterCol heading={t.footer.menuHeading} delay={0} visible={visible}>
+            {FOOTER_NAV_IDS.map(({ id }, i) => (
               <button
                 key={id}
                 onClick={() => scrollTo(id)}
-                className="text-left text-[#162456] bg-transparent border-none cursor-pointer hover:opacity-55 transition-opacity font-inter font-normal pl-[8px]"
+                className="text-left text-[#162456] bg-transparent border-none cursor-pointer
+                           hover:opacity-55 transition-opacity font-inter font-normal pl-[8px]"
                 style={{ fontSize: F_ITEMS }}
               >
-                {label}
+                {footerNavLabels[i]}
               </button>
             ))}
           </FooterCol>
 
-          {/* ── Col 2: Bureau — <address> tells search engines this is
-                contact/location data, boosting local SEO signals ── */}
-          <FooterCol heading="Bureau" delay={.1} visible={visible}>
+          {/* ── Col 2: Bureau / Office ── */}
+          <FooterCol heading={t.footer.bureauHeading} delay={.1} visible={visible}>
             <address className="not-italic flex flex-col" style={{ gap: 'inherit' }}>
-              <p style={{ fontSize: F_ITEMS }}>Bouchain, 59111</p>
+              <p style={{ fontSize: F_ITEMS }}>{t.footer.city}</p>
               <a
-                href="mailto:rpoissonnier.it@gmail.com"
-                className="text-[#162456] no-underline hover:opacity-55 transition-opacity"
-                style={{ fontSize: 'clamp(12px, 1.98vw, 38px)' }}
+                href={`mailto:${t.footer.email}`}
+                className="text-[#162456] no-underline hover:opacity-55 transition-opacity break-all"
+                style={{ fontSize: F_EMAIL }}
               >
-                rpoissonnier.it@gmail.com
+                {t.footer.email}
               </a>
             </address>
           </FooterCol>
 
-          {/* ── Col 3: Social — FA brand icons lead each link ── */}
-          <FooterCol heading="Social" delay={.2} visible={visible}>
-            {FOOTER_SOCIAL.map(({ label, href, icon }) => (
+          {/* ── Col 3: Social ── */}
+          <FooterCol heading={t.footer.socialHeading} delay={.2} visible={visible}>
+            {FOOTER_SOCIAL_DATA.map(({ labelKey, hrefKey, icon }) => (
               <a
-                key={label}
-                href={href}
+                key={labelKey}
+                href={t.footer[hrefKey]}
                 target="_blank" rel="noreferrer"
-                className="text-[#162456] no-underline hover:opacity-55 transition-opacity flex items-center gap-[0.5em]"
+                className="text-[#162456] no-underline hover:opacity-55 transition-opacity
+                           flex items-center gap-[0.5em]"
                 style={{ fontSize: F_ITEMS }}
               >
-                <FontAwesomeIcon
-                  icon={icon}
-                  fixedWidth
-                  style={{ fontSize: '0.85em', opacity: 0.75 }}
-                />
-                {label}
+                <FontAwesomeIcon icon={icon} fixedWidth style={{ fontSize: '0.85em', opacity: 0.75 }} />
+                {t.footer[labelKey]}
               </a>
+            ))}
+          </FooterCol>
+
+          {/* ── Col 4: Language switcher ── */}
+          <FooterCol heading={t.footer.langHeading} delay={.3} visible={visible}>
+            {[
+              { code: 'fr', label: t.footer.langFr },
+              { code: 'en', label: t.footer.langEn },
+            ].map(({ code, label }) => (
+              <button
+                key={code}
+                onClick={() => setLang(code)}
+                className="text-left bg-transparent border-none cursor-pointer
+                           hover:opacity-55 transition-opacity font-inter font-normal"
+                style={{
+                  fontSize:    F_ITEMS,
+                  color:       lang === code ? '#162456' : '#162456',
+                  fontWeight:  lang === code ? 600 : 400,
+                  opacity:     lang === code ? 1   : 0.5,
+                }}
+                aria-pressed={lang === code}
+              >
+                {label}
+              </button>
             ))}
           </FooterCol>
 
@@ -1383,10 +1431,11 @@ function Footer() {
       </div>
 
       {/* ── Giant RPIT logotype ───────────────────────────────────────────── */}
-      {/* letterSpacing pushes chars apart; paddingLeft compensates so the
-          word stays visually centered rather than shifted right. */}
+      {/* Separator line above gives visual separation from the columns */}
+      <div className="mx-6 sm:mx-[60px] lg:mx-[80px] mt-12 mb-0 border-t border-[#162456]/10" />
+
       <motion.div
-        className="flex items-end justify-center overflow-hidden mt-4"
+        className="flex items-end justify-center overflow-hidden pt-6 pb-2"
         initial={{ opacity: 0, y: 80 }}
         animate={visible ? { opacity: 1, y: 0 } : {}}
         transition={{ duration: .9, delay: .25, ease: E_EXPO }}
@@ -1399,7 +1448,7 @@ function Footer() {
             paddingLeft:  'clamp(12px, 9.16vw, 175.89px)',
           }}
         >
-          RPIT
+          {t.footer.bigLogoText}
         </span>
       </motion.div>
 
