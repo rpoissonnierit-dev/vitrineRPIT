@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!--
+    RPIT Sitemap
+    Submit to Google Search Console: https://search.google.com/search-console
+    Submit to Bing Webmaster Tools:  https://www.bing.com/webmasters
+    Validate at: https://www.xml-sitemaps.com/validate-xml-sitemap.html
+  -->
+
+  <url>
+    <loc>https://rpit.fr/</loc>
+    <lastmod>2026-05-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+
+    <!-- Language alternate (hreflang mirrors index.html) -->
+    <xhtml:link rel="alternate" hreflang="fr"        href="https://rpit.fr/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rpit.fr/" />
+
+    <!-- Image sitemap entries — helps Google index images for Image Search -->
+    <image:image>
+      <image:loc>https://rpit.fr/og-image.jpg</image:loc>
+      <image:title>Remy Poissonnier — Fondateur RPIT, création site web et SEO</image:title>
+      <image:caption>Remy Poissonnier, expert en création de sites web et référencement SEO, basé à Bouchain dans le Nord (59)</image:caption>
+      <image:geo_location>Bouchain, Nord, Hauts-de-France, France</image:geo_location>
+      <image:license>https://rpit.fr/</image:license>
+    </image:image>
+
+    <image:image>
+      <image:loc>https://rpit.fr/mainwhalewhite.svg</image:loc>
+      <image:title>Logo RPIT — Agence création site web et SEO</image:title>
+      <image:caption>Logo de RPIT, agence digitale spécialisée en création de sites web, SEO et identité visuelle</image:caption>
+    </image:image>
+
+  </url>
+
+</urlset>
