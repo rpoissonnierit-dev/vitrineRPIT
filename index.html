@@ -239,12 +239,37 @@
     ══════════════════════════════════════════════════════════════════ -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- dns-prefetch is a lighter fallback for browsers that don't support preconnect -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
 
-    <!-- Fonts: swap avoids render-blocking; subset to latin for smaller payload -->
+    <!--
+      NON-BLOCKING FONT LOADING — eliminates the 750ms render-blocking penalty.
+
+      How it works (the "loadCSS" pattern):
+        1. rel="preload" as="style"  → browser downloads the font CSS in the background,
+                                       at high priority, WITHOUT blocking rendering.
+        2. onload callback           → once downloaded, flips rel to "stylesheet",
+                                       which injects the fonts into the page.
+        3. this.onload = null        → prevents the callback firing a second time.
+        4. <noscript> fallback       → if JavaScript is disabled, loads normally.
+
+      The page renders instantly with fallback system fonts (defined below in the
+      inline <style> block). Fonts visually "swap in" within milliseconds —
+      invisible to most users thanks to display=swap.
+    -->
     <link
+      rel="preload"
+      as="style"
       href="https://fonts.googleapis.com/css2?family=Limelight&family=Plaster&family=Inter:wght@400;500;600&display=swap&subset=latin"
-      rel="stylesheet"
+      onload="this.onload=null;this.rel='stylesheet'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Limelight&family=Plaster&family=Inter:wght@400;500;600&display=swap&subset=latin"
+      />
+    </noscript>
 
     <!-- Hero photo — preloaded so it renders immediately when the loading
          overlay exits (improves LCP score significantly) -->
@@ -259,8 +284,23 @@
     <!-- ══════════════════════════════════════════════════════════════
          CRITICAL INLINE CSS
          Prevents flash-of-white and layout shift before React hydrates.
+         Also declares fallback font stacks used while Google Fonts loads.
     ══════════════════════════════════════════════════════════════════ -->
     <style>
+      /*
+        Fallback font stacks — rendered instantly, before Google Fonts arrives.
+        "Limelight" and "Plaster" fall back to Georgia/serif (closest visual match).
+        "Inter" falls back to the system UI font stack (already looks great).
+        Once the real fonts download, display:swap replaces these automatically.
+      */
+      .font-limelight, .font-plaster {
+        font-family: 'Limelight', 'Plaster', Georgia, 'Times New Roman', serif;
+      }
+      .font-inter {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+                     'Segoe UI', Roboto, sans-serif;
+      }
+
       html, body, #root {
         margin: 0;
         padding: 0;

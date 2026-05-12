@@ -11,7 +11,8 @@
       "Bash(kill %1)",
       "Bash(chmod +x *)",
       "Bash(git add *)",
-      "Bash(bash deploy.sh)"
+      "Bash(bash deploy.sh)",
+      "Bash(bash *)"
     ]
   }
 }
