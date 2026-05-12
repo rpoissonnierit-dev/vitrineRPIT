@@ -850,14 +850,14 @@ function HeroSection({ ready }) {
 
           {/* ── Text — flex-1 so it fills whatever is left after the photo ── */}
           <motion.div
-            className="flex flex-col items-start w-full lg:flex-1 lg:min-w-0"
+            className="flex flex-col items-center lg:items-start w-full lg:flex-1 lg:min-w-0"
             style={{ y: textY }}
             initial="hidden" animate={show}
           >
             {/* Subtitle — clips up from mask */}
             <div style={{ overflow: 'hidden', marginBottom: 4 }}>
               <motion.p
-                className="font-inter font-normal text-[#ffe355] leading-[1.2]"
+                className="font-inter font-normal text-[#ffe355] leading-[1.2] text-center lg:text-left"
                 style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
                 variants={{ hidden: { y: '105%' }, show: { y: 0, transition: { duration: .5, delay: .1, ease: E_EXPO } } }}
               >
@@ -869,7 +869,7 @@ function HeroSection({ ready }) {
                 <p> inside <h1> is invalid HTML → use <span style="display:block">.
                 The <h1> is the primary keyword signal for Google on this page. */}
             <h1
-              className="font-limelight text-white mb-5 md:mb-7"
+              className="font-limelight text-white mb-5 md:mb-7 text-center lg:text-left"
               style={{
                 fontSize:   'clamp(36px,7vw,120px)',
                 lineHeight: 1.05,
@@ -897,7 +897,7 @@ function HeroSection({ ready }) {
 
             {/* Body */}
             <motion.p
-              className="font-inter font-normal text-white leading-[1.2]"
+              className="font-inter font-normal text-white leading-[1.2] text-justify"
               style={{ fontSize: 'clamp(14px,1.46vw,21px)', maxWidth: '52ch' }}
               variants={{
                 hidden: { opacity: 0, y: 24, filter: 'blur(4px)' },
@@ -1006,13 +1006,13 @@ function StatsSection() {
             transition={{ duration: .7, ease: E_EXPO }}
           >
             <h2
-              className="font-limelight text-white leading-normal"
+              className="font-limelight text-white leading-normal text-center lg:text-left"
               style={{ fontSize: 'clamp(20px,3.3vw,47px)' }}
             >
               {t.stats.headline}
             </h2>
             <p
-              className="font-inter font-normal text-white leading-[1.2]"
+              className="font-inter font-normal text-white leading-[1.2] text-justify"
               style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
             >
               {t.stats.body}
@@ -1143,7 +1143,7 @@ function ReferencesSection() {
               {t.references.title}
             </h2>
             <p
-              className="font-inter font-normal text-white leading-[1.2] text-center lg:text-left"
+              className="font-inter font-normal text-white leading-[1.2] text-justify"
               style={{ fontSize: 'clamp(14px,1.875vw,27px)' }}
             >
               {t.references.body}
@@ -1237,7 +1237,7 @@ function ContactSection() {
             transition={{ duration: .7, ease: E_EXPO }}
           >
             <h2
-              className="font-limelight text-white leading-normal"
+              className="font-limelight text-white leading-normal text-center lg:text-left"
               style={{ fontSize: 'clamp(20px,3.3vw,47px)', textShadow: '0px 4px 4px rgba(0,0,0,.25)' }}
             >
               {t.contact.headline}
