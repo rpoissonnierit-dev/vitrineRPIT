@@ -62,6 +62,10 @@ const en = {
 
     // Call-to-action button inside the navigation bar
     ctaButton:  'Free Audit',
+
+    // Screen-reader accessible labels (aria-label)
+    openMenu:   'Open menu',
+    closeMenu:  'Close menu',
   },
 
 
@@ -181,6 +185,9 @@ const en = {
 
     // Contact email address (also used as the mailto: link)
     email:      'rpoissonnier.it@gmail.com',
+
+    // Accessible label for the mail icon (screen readers)
+    mailIconLabel: 'Send an email to RPIT',
   },
 
 

@@ -62,6 +62,10 @@ const fr = {
 
     // Bouton d'appel à l'action dans la barre de navigation
     ctaButton:  'Audit offert',
+
+    // Labels accessibles pour les lecteurs d'écran (aria-label)
+    openMenu:   'Ouvrir le menu',
+    closeMenu:  'Fermer le menu',
   },
 
 
@@ -181,6 +185,9 @@ const fr = {
 
     // Adresse e-mail de contact (aussi utilisée comme lien mailto:)
     email:      'rpoissonnier.it@gmail.com',
+
+    // Label accessible pour l'icône mail (lecteurs d'écran)
+    mailIconLabel: 'Envoyer un e-mail à RPIT',
   },
 
 

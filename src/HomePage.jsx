@@ -745,6 +745,9 @@ function NavBar({ ready }) {
           className="text-white bg-transparent border-none cursor-pointer p-1"
           onClick={() => setOpen(!open)}
           whileTap={{ scale: .9 }}
+          aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
+          aria-expanded={open}
+          aria-controls="mobile-nav-drawer"
         >
           {open
             ? <FontAwesomeIcon icon={faXmark} style={{ width: 22, fontSize: 22, color: 'white' }} />
@@ -760,6 +763,7 @@ function NavBar({ ready }) {
       <AnimatePresence>
         {open && (
           <motion.nav
+            id="mobile-nav-drawer"
             className="md:hidden absolute top-full left-0 right-0
                        flex flex-col px-6 py-6 gap-1"
             style={{
@@ -1268,6 +1272,7 @@ function ContactSection() {
           <motion.a
             href="mailto:rpoissonnier.it@gmail.com"
             className="shrink-0 text-white/80 no-underline"
+            aria-label={t.contact.mailIconLabel}
             initial={{ opacity: 0, scale: .4, y: 40 }}
             animate={visible ? { opacity: .8, scale: 1, y: 0 } : {}}
             transition={{ duration: .8, delay: .2, ease: E_SPRING }}
