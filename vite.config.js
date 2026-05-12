@@ -2,8 +2,26 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
+// Injects <link rel="preload" as="style"> before each CSS <link rel="stylesheet">
+// so the browser discovers CSS from the HTML itself — breaking the HTML→JS→CSS
+// 3-level critical chain down to a 2-level HTML→(JS + CSS in parallel) structure.
+function cssPreloadPlugin() {
+  return {
+    name: 'vite-plugin-css-preload',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html) {
+        return html.replace(
+          /(<link rel="stylesheet"[^>]+href="([^"]+\.css)"[^>]*\/?>)/g,
+          '<link rel="preload" as="style" href="$2">$1'
+        );
+      },
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), cssPreloadPlugin()],
 
   resolve: {
     alias: {
