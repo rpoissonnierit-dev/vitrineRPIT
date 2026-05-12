@@ -37,9 +37,9 @@
  * │  File                    Constant      Figma asset UUID         │
  * │  ─────────────────────── ──────────── ─────────────────────     │
  * │  /public/mainwhalewhite.svg → IMG_LOGO   ✓ in place            │
- * │  /public/moi.png            → IMG_PHOTO  ✓ in place            │
+ * │  /public/moi.webp           → IMG_PHOTO  ✓ in place (webp)     │
  * │  /public/RGlogo.png         → IMG_RENAULT ✓ in place           │
- * │  /public/DanserLogo.png     → IMG_DANSER  ✓ in place           │
+ * │  /public/DanserLogo.webp    → IMG_DANSER  ✓ in place (webp)    │
  * │  /public/CiteliveLogo.png   → IMG_CITELIV ✓ in place           │
  * │  Hanshak → replaced by faHandshake (FA solid icon) ✓            │
  * └─────────────────────────────────────────────────────────────────┘
@@ -77,9 +77,9 @@ import {
 // ── Local assets (public/ folder — no expiry) ─────────────────────────────────
 const IMG_UNION   = '/mainwhalewhite.svg';   // loading overlay — same mark as logo
 const IMG_LOGO    = '/mainwhalewhite.svg';
-const IMG_PHOTO   = '/moi.png';
+const IMG_PHOTO   = '/moi.webp';
 const IMG_RENAULT = '/RGlogo.png';
-const IMG_DANSER  = '/DanserLogo.png';
+const IMG_DANSER  = '/DanserLogo.webp';
 const IMG_CITELIV = '/CiteliveLogo.png';
 // IMG_HANSHAK removed — replaced with faHandshake icon below
 
