@@ -352,7 +352,13 @@ function LoadingOverlay({ onComplete }) {
               }
             >
               <div className="absolute" style={{ inset: '-13.91% -8.75% -9.81% -18.02%' }}>
-                <img src={IMG_UNION} alt="RPIT" className="block w-full h-full" />
+                <img
+                  src={IMG_UNION}
+                  alt="RPIT"
+                  className="block w-full h-full"
+                  fetchpriority="high"
+                  decoding="sync"
+                />
               </div>
             </motion.div>
           </motion.div>
@@ -987,7 +993,7 @@ function StatsSection() {
   return (
     <section id="stats" ref={ref} aria-label="Résultats et performance" className="w-full py-16 md:py-24 lg:py-32">
       <div className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-[clamp(60px,12.7vw,244px)]">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-16">
 
           <motion.div
             className="flex flex-col gap-5 md:gap-6 w-full lg:max-w-[966px]"
@@ -1048,7 +1054,7 @@ function PartnersSection() {
           </motion.div>
 
           <motion.div
-            className="flex-1 bg-white rounded-[32px] overflow-hidden min-w-0"
+            className="flex-1 w-full bg-white rounded-[32px] overflow-hidden min-w-0"
             style={{ boxShadow: '0px 4px 2px rgba(0,0,0,.25)' }}
             initial={{ opacity: 0, x: 60 }}
             animate={visible ? { opacity: 1, x: 0 } : {}}
@@ -1118,7 +1124,7 @@ function ReferencesSection() {
   return (
     <section id="references" ref={ref} aria-label="Références et expertises" className="w-full py-16 md:py-24 lg:py-32">
       <div className="max-w-[1440px] mx-auto px-6 sm:px-10 lg:px-[clamp(60px,12.7vw,244px)]">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-10 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 lg:gap-16">
 
           <motion.div
             className="flex flex-col gap-[clamp(24px,4.2vw,80px)] w-full lg:max-w-[727px]"
@@ -1221,7 +1227,7 @@ function ContactSection() {
         <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
 
           <motion.div
-            className="flex flex-col gap-[clamp(24px,4.2vw,80px)] items-start w-full lg:max-w-[681px]"
+            className="flex flex-col gap-[clamp(24px,4.2vw,80px)] items-center lg:items-start w-full lg:max-w-[681px]"
             initial={{ opacity: 0, x: -60 }}
             animate={visible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: .7, ease: E_EXPO }}

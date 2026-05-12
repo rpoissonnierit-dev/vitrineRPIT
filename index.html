@@ -248,6 +248,9 @@
 
     <!-- Hero photo — preloaded so it renders immediately when the loading
          overlay exits (improves LCP score significantly) -->
+    <!-- LCP image: the loading-overlay logo is the first large painted element -->
+    <link rel="preload" as="image" href="/mainwhalewhite.svg" fetchpriority="high" type="image/svg+xml" />
+    <!-- Hero photo preloaded so it's ready when the loading overlay exits -->
     <link rel="preload" as="image" href="/moi.png" fetchpriority="high" />
 
     <!-- Misc -->
