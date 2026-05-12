@@ -46,6 +46,18 @@ root.render(
   </StrictMode>
 );
 
+// Dismiss the pre-React loading shell once React starts rendering.
+// Moved here (instead of an inline <script> in index.html) so the shell stays
+// visible from HTML-parse time (~10ms FCP) all the way until React mounts,
+// eliminating the 244ms blank-page gap that occurred when the inline script
+// ran at parse time before the JS module had executed.
+const shell = document.getElementById('loading-shell');
+if (shell) {
+  shell.classList.add('fade-out');
+  setTimeout(() => shell.remove(), 450);
+}
+document.body.classList.remove('is-loading');
+
 // ── Development helpers ────────────────────────────────────────────────────────
 if (import.meta.env.DEV) {
   // Log the Vite mode so you always know which env is active

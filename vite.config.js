@@ -2,9 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-// Injects <link rel="preload" as="style"> before each CSS <link rel="stylesheet">
-// so the browser discovers CSS from the HTML itself — breaking the HTML→JS→CSS
-// 3-level critical chain down to a 2-level HTML→(JS + CSS in parallel) structure.
+// Makes every Vite-injected CSS <link rel="stylesheet"> non-render-blocking.
+// Pattern mirrors the loadCSS technique used for Google Fonts:
+//   1. <link rel="preload" as="style">  → download CSS at high priority, no render-block
+//   2. media="print" + onload           → swap to media="all" once loaded (no FOUC because
+//                                         CSS finishes ~537ms, React renders ~694ms)
+//   3. <noscript> fallback              → blocking stylesheet for JS-disabled browsers
+// Net result: FCP from the pre-React shell fires at HTML-parse time (~10ms) instead of
+// waiting for CSS (~537ms), cutting the critical-chain depth from 3 to 2 levels.
 function cssPreloadPlugin() {
   return {
     name: 'vite-plugin-css-preload',
@@ -12,8 +17,11 @@ function cssPreloadPlugin() {
       order: 'post',
       handler(html) {
         return html.replace(
-          /(<link rel="stylesheet"[^>]+href="([^"]+\.css)"[^>]*\/?>)/g,
-          '<link rel="preload" as="style" href="$2">$1'
+          /<link rel="stylesheet"([^>]*href="([^"]+\.css)"[^>]*)>/g,
+          (_, attrs, url) =>
+            `<link rel="preload" as="style" href="${url}">` +
+            `<link rel="stylesheet"${attrs} media="print" onload="this.onload=null;this.media='all'">` +
+            `<noscript><link rel="stylesheet" href="${url}"></noscript>`
         );
       },
     },

@@ -12,7 +12,20 @@
       "Bash(chmod +x *)",
       "Bash(git add *)",
       "Bash(bash deploy.sh)",
-      "Bash(bash *)"
+      "Bash(bash *)",
+      "Bash(git -C /Users/regtre/Documents/RPIT/SITES/MyWebSite remote get-url origin)",
+      "WebFetch(domain:www.googleapis.com)",
+      "WebFetch(domain:pagespeed.web.dev)",
+      "Bash(curl -s \"https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://www.rpit.fr&strategy=mobile\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\); print\\(d.get\\('error','no error'\\)\\)\")",
+      "Bash(sips *)",
+      "Bash(cwebp -q 82 -resize 500 0 /Users/regtre/Documents/RPIT/SITES/MyWebSite/public/moi.webp -o /tmp/moi_resized.webp)",
+      "Read(//tmp/**)",
+      "Bash(cwebp -q 80 -alpha_q 40 -resize 500 0 /Users/regtre/Documents/RPIT/SITES/MyWebSite/public/moi.webp -o /tmp/moi_aq40.webp)",
+      "Bash(cwebp -q 78 -alpha_q 40 -resize 420 0 /Users/regtre/Documents/RPIT/SITES/MyWebSite/public/moi.webp -o /tmp/moi_420.webp)",
+      "Bash(cwebp -q 80 -alpha_q 60 -resize 500 0 /Users/regtre/Documents/RPIT/SITES/MyWebSite/public/moi.webp -o /tmp/moi_final.webp)",
+      "Bash(cwebp -q 80 -alpha_q 60 /Users/regtre/Documents/RPIT/SITES/MyWebSite/public/DanserLogo.webp -o /tmp/danser_final.webp)"
     ]
   }
 }

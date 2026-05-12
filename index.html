@@ -366,18 +366,6 @@
     <!-- React root -->
     <div id="root"></div>
 
-    <!-- Dismiss pre-React shell the instant JS runs -->
-    <script>
-      (function () {
-        var shell = document.getElementById('loading-shell');
-        if (shell) {
-          shell.classList.add('fade-out');
-          setTimeout(function () { shell.remove(); }, 450);
-        }
-        document.body.classList.remove('is-loading');
-      })();
-    </script>
-
     <!-- Vite entry point -->
     <script type="module" src="/src/main.jsx"></script>
   </body>
